@@ -14,7 +14,7 @@ from db import init_db, get_user_by_id
 from auth import register_user, authenticate_user, get_user_info
 from services.ai_service import get_ai_response
 from services.mood_service import detect_mood, get_mood_emoji
-from services.session_service import get_or_create_session, get_user_chat_history
+from services.session_service import get_or_create_session, get_user_chat_history, get_active_or_new_session
 from services.memory_service import get_memory_service
 import re
 
@@ -106,6 +106,15 @@ def chat_page():
     user = get_user_info(session["user_id"])
     return render_template("chat.html", user=user)
 
+@app.route("/insights-page")
+def insights_page():
+    """Insights dashboard page (protected)."""
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    user = get_user_info(session["user_id"])
+    return render_template("insights.html", user=user)
+
+
 
 # ==================== API ROUTES ====================
 
@@ -133,7 +142,8 @@ def chat():
         mood = detect_mood(user_message)
         
         # 2. Retrieve context from memory (PostgreSQL history)
-        context = memory_service.get_context(user_id, user_message, top_k=5)
+        context = memory_service.get_context(user_id, session_id, user_message, top_k=5)
+        is_first_message = (context == "")
         
         # 3. Get AI response with context
         result = get_ai_response(user_message, mood, context)
@@ -151,8 +161,12 @@ def chat():
         memory_service.store_interaction(user_id, user_message, ai_response, mood)
         
         # 5. Save to database
-        from db import save_chat_message
+        from db import save_chat_message, update_session_title
         save_chat_message(user_id, session_id, user_message, ai_response, mood)
+        
+        if is_first_message:
+            title = user_message[:30] + ("..." if len(user_message) > 30 else "")
+            update_session_title(session_id, title)
         
         return jsonify({
             "success": True,
@@ -189,6 +203,91 @@ def new_session():
     except Exception as e:
         print(f"Session creation error: {e}")
         return jsonify({"success": False, "error": "Failed to create session"}), 500
+
+@app.route("/api/session/current", methods=["GET"])
+def current_session():
+    """Get active session or create new one, returning recent history."""
+    if "user_id" not in session:
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+    
+    try:
+        user_id = session["user_id"]
+        session_id, is_new = get_active_or_new_session(user_id)
+        
+        messages = []
+        if not is_new:
+            # Fetch message history to render back on screen
+            history = get_user_chat_history(user_id, session_id=session_id)
+            if history and "messages" in history:
+                messages = history["messages"]
+                
+        return jsonify({
+            "success": True,
+            "session_id": session_id,
+            "is_new": is_new,
+            "messages": messages
+        }), 200
+        
+    except Exception as e:
+        print(f"Current session error: {e}")
+        return jsonify({"success": False, "error": "Failed to load session"}), 500
+
+@app.route("/api/sessions", methods=["GET"])
+def get_sessions():
+    """Return all sessions for user."""
+    if "user_id" not in session:
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+    
+    try:
+        user_id = session["user_id"]
+        from db import get_user_sessions
+        sessions = get_user_sessions(user_id, limit=20)
+        
+        return jsonify({
+            "success": True,
+            "sessions": [dict(s) for s in sessions]
+        }), 200
+    except Exception as e:
+        print(f"Failed fetching sessions: {e}")
+        return jsonify({"success": False, "error": "Failed to retrieve sessions"}), 500
+
+
+@app.route("/api/insights/generate", methods=["POST"])
+def generate_insights():
+    """Analyze recent history and generate mental health insight."""
+    if "user_id" not in session:
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+        
+    try:
+        user_id = session["user_id"]
+        
+        # Get last 20 messages globally using the db function manually or through session service
+        from db import get_db
+        from psycopg2.extras import DictCursor
+        with get_db() as conn:
+            with conn.cursor(cursor_factory=DictCursor) as cursor:
+                cursor.execute(
+                    "SELECT user_message, ai_response, mood FROM messages WHERE user_id = %s ORDER BY created_at DESC LIMIT 20",
+                    (user_id,)
+                )
+                results = cursor.fetchall()
+        
+        if not results:
+            return jsonify({"success": True, "insight": "Not enough data yet. Start chatting to build your mental health profile!"})
+
+        results.reverse()
+        history_text = ""
+        for r in results:
+            history_text += f"[Mood: {r['mood']}]\nUser: {r['user_message']}\nAI: {r['ai_response']}\n\n"
+            
+        from services.ai_service import generate_mental_health_insight
+        insight = generate_mental_health_insight(history_text)
+        
+        return jsonify({"success": True, "insight": insight})
+        
+    except Exception as e:
+        print(f"Insight generation error: {e}")
+        return jsonify({"success": False, "error": "Failed to generate insights"}), 500
 
 
 @app.route("/api/session/history", methods=["GET"])

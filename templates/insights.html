@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AI Mental Health Insights">
+    <title>Insights — WellMindAI</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+    <style>
+        .insights-container {
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            flex: 1;
+            overflow-y: auto;
+        }
+        .insights-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: 2.5rem;
+            color: var(--color-text);
+            box-shadow: var(--shadow-sm);
+        }
+        .insights-card h3 {
+            color: var(--color-primary-dark);
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+        .btn-generate {
+            align-self: center;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);
+        }
+        .btn-generate:hover {
+            opacity: 0.9;
+        }
+        .btn-generate:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .insight-text {
+            white-space: pre-wrap;
+            line-height: 1.7;
+            color: var(--color-text-secondary);
+        }
+        .insight-text strong {
+            color: var(--color-text);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="chat-layout">
+
+        <!-- ═══════════ HEADER ═══════════ -->
+        <div class="chat-header">
+            <div class="chat-header__left">
+                <a href="/chat-page" class="chat-header__back" title="Back to Chat">💬</a>
+                <div class="chat-header__avatar">📊</div>
+                <div class="chat-header__info">
+                    <h2>Mental Health Insights</h2>
+                    <span class="chat-header__status">● Analyzing past conversations</span>
+                </div>
+            </div>
+            <div class="chat-header__user">
+                {{ user.username }}
+            </div>
+        </div>
+
+        <!-- ═══════════ INSIGHTS AREA ═══════════ -->
+        <div class="insights-container">
+            <div class="insights-card">
+                <h3>Your Personalized Mental Wellness Map</h3>
+                <p style="margin-bottom: 1.5rem; color: var(--color-text-secondary); line-height: 1.6;">
+                    WellMindAI can analyze your recent thoughts and feelings to help you identify patterns, recognize your emotional growth, and offer tailored support. This analysis is fully confidential and based entirely on your recent chat history.
+                </p>
+                
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <button class="btn-generate" id="btn-generate">Generate Insight Report</button>
+                </div>
+                
+                <div id="insight-result" style="display: none; margin-top: 1rem;">
+                    <hr style="border: 0; height: 1px; background: var(--color-border); margin-bottom: 1.5rem;" />
+                    <div class="insight-text" id="insight-content">
+                        Processing...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ═══════════ JS ═══════════ -->
+    <script>
+        const btnGenerate = document.getElementById('btn-generate');
+        const resultContainer = document.getElementById('insight-result');
+        const resultContent = document.getElementById('insight-content');
+
+        function escapeHTML(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        btnGenerate.addEventListener('click', async () => {
+            btnGenerate.disabled = true;
+            btnGenerate.textContent = "Analyzing conversations...";
+            resultContainer.style.display = "block";
+            resultContent.innerHTML = "<em>WellMindAI is reading your recent history and generating insights. This may take a few seconds...</em>";
+
+            try {
+                const response = await fetch('/api/insights/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const formatted = escapeHTML(data.insight).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                    resultContent.innerHTML = formatted;
+                } else {
+                    resultContent.innerHTML = `<span style="color: #ef4444;">Error: ${data.error}</span>`;
+                }
+            } catch (err) {
+                resultContent.innerHTML = `<span style="color: #ef4444;">Connection error. Please try again later.</span>`;
+            } finally {
+                btnGenerate.disabled = false;
+                btnGenerate.textContent = "Generate Insight Report";
+            }
+        });
+    </script>
+</body>
+</html>

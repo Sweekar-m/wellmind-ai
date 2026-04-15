@@ -15,6 +15,12 @@
   const moodValue = document.getElementById('mood-value');
   const messagesValue = document.getElementById('messages-value');
   const durationValue = document.getElementById('duration-value');
+  const welcomeMsg = document.getElementById('welcome-msg');
+  const sessionList = document.getElementById('session-list');
+  const btnMenu = document.getElementById('btn-menu');
+  const chatMenu = document.getElementById('chat-menu');
+  const btnNewChatMenu = document.getElementById('btn-new-chat-menu');
+  const btnLoadHistory = document.getElementById('btn-load-history');
 
   // ===== UTIL =====
   function getTime() {
@@ -129,6 +135,7 @@
       }
 
       updateStats();
+      loadSidebar();
 
     } catch (err) {
       console.error("Chat error:", err);
@@ -151,13 +158,120 @@
     }
   });
 
+  // ===== DROPDOWN MENU =====
+  btnMenu?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      chatMenu.style.display = chatMenu.style.display === 'block' ? 'none' : 'block';
+  });
+
+  document.addEventListener('click', () => {
+      if (chatMenu) chatMenu.style.display = 'none';
+  });
+
+  // ===== SIDEBAR SESSIONS =====
+  async function loadSidebar() {
+      if (!sessionList) return;
+      try {
+          const res = await fetch('/api/sessions');
+          const data = await res.json();
+          if (data.success && data.sessions) {
+              sessionList.innerHTML = '';
+              data.sessions.forEach(s => {
+                  const item = document.createElement('div');
+                  item.className = `session-item ${s.id === currentSessionId ? 'active' : ''}`;
+                  item.onclick = () => loadSession(s.id);
+
+                  item.innerHTML = `
+                      <div class="session-icon">💬</div>
+                      <div class="session-details" style="display:flex; flex-direction:column;">
+                         <div class="session-title">${escapeHTML(s.title || 'New Chat')}</div>
+                         <div class="session-mood" style="font-size:0.75rem; opacity:0.8;">Mood: ${s.mood || 'Neutral'}</div>
+                      </div>
+                  `;
+                  sessionList.appendChild(item);
+              });
+          }
+      } catch (e) { console.error("Sidebar load error", e); }
+  }
+
+  // ===== SESSION LOGIC =====
+  async function loadSession(sessionId) {
+    try {
+      const res = await fetch(`/api/session/history?session_id=${sessionId}`);
+      const data = await res.json();
+      if (data.success && data.data) {
+        currentSessionId = sessionId;
+        localStorage.setItem('wellmind_session_id', currentSessionId);
+        
+        chatMessages.innerHTML = '';
+        messageCount = 0;
+        currentMood = null;
+        startTime = Date.now();
+        
+        if(data.data.messages && data.data.messages.length > 0) {
+            data.data.messages.forEach(msg => {
+                addMessage(msg.user_message, 'user');
+                addMessage(msg.ai_response, 'ai');
+                messageCount += 2;
+                currentMood = msg.mood;
+            });
+        } else {
+            if (welcomeMsg) chatMessages.appendChild(welcomeMsg);
+        }
+        
+        updateStats();
+        loadSidebar();
+      } else {
+        // If session loading failed, create new
+        startNewSession();
+      }
+    } catch (e) {
+        console.error("Failed to load session", e);
+        startNewSession();
+    }
+  }
+  
+  async function startNewSession() {
+      try {
+          const res = await fetch('/api/session/new', { method: 'POST' });
+          const data = await res.json();
+          if (data.success) {
+              currentSessionId = data.session_id;
+              localStorage.setItem('wellmind_session_id', currentSessionId);
+              
+              chatMessages.innerHTML = '';
+              if (welcomeMsg) chatMessages.appendChild(welcomeMsg);
+              messageCount = 0;
+              currentMood = null;
+              startTime = Date.now();
+              updateStats();
+              loadSidebar();
+          }
+      } catch (e) { console.error("Failed to start new session", e); }
+  }
+
+  // ===== MENU ACTIONS =====
+  btnNewChatMenu?.addEventListener('click', () => {
+      startNewSession();
+  });
+
+  btnLoadHistory?.addEventListener('click', () => {
+      const savedSessionId = localStorage.getItem('wellmind_session_id');
+      if (savedSessionId) {
+          loadSession(savedSessionId);
+      } else {
+          startNewSession();
+      }
+  });
+
   // ===== INIT =====
   async function initSession() {
-    try {
-      const res = await fetch('/api/session/new', { method: 'POST' });
-      const data = await res.json();
-      if (data.success) currentSessionId = data.session_id;
-    } catch (e) { console.error("Failed to init session", e); }
+      const savedSessionId = localStorage.getItem('wellmind_session_id');
+      if (savedSessionId) {
+          loadSession(savedSessionId);
+      } else {
+          startNewSession();
+      }
   }
   
   initSession();

@@ -1,6 +1,7 @@
 """Session management for chat sessions."""
 
 import time
+from datetime import datetime, timedelta
 from db import create_session, get_session_messages, save_chat_message, get_user_sessions
 
 
@@ -62,3 +63,30 @@ def get_user_chat_history(user_id, session_id=None, limit=50):
         return {
             "sessions": [dict(s) for s in sessions]
         }
+
+def get_active_or_new_session(user_id, timeout_hours=12):
+    """Get the most recent session if it's active, otherwise create new."""
+    recent_sessions = get_user_sessions(user_id, limit=1)
+    
+    if recent_sessions:
+        latest = recent_sessions[0]
+        updated_at = latest['updated_at']
+        
+        # Ensure it's a datetime object
+        if isinstance(updated_at, str):
+            try:
+                updated_at = datetime.fromisoformat(updated_at.replace('Z', '+00:00'))
+            except:
+                updated_at = datetime.now()
+                
+        # Strip timezone for safe subtraction
+        if updated_at.tzinfo is not None:
+            updated_at = updated_at.replace(tzinfo=None)
+            
+        if datetime.now() - updated_at < timedelta(hours=timeout_hours):
+            return latest['id'], False  # Not new
+            
+    # Create new session if no recent active session
+    session_id = create_session(user_id)
+    return session_id, True
+

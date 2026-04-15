@@ -6,21 +6,21 @@ from psycopg2.extras import DictCursor
 class MemoryService:
     """Manage user memory using recent chat history from PostgreSQL."""
     
-    def get_context(self, user_id, current_message, top_k=5):
-        """Retrieve recent past interactions as context."""
+    def get_context(self, user_id, session_id, current_message, top_k=5):
+        """Retrieve recent past interactions as context for the active session."""
         try:
             with get_db() as conn:
                 with conn.cursor(cursor_factory=DictCursor) as cursor:
-                    # Fetch the last 'top_k' messages for this user across all sessions
+                    # Fetch the last 'top_k' messages for this specific session
                     cursor.execute(
                         """
                         SELECT user_message, ai_response, mood, created_at 
                         FROM messages 
-                        WHERE user_id = %s 
+                        WHERE user_id = %s AND session_id = %s
                         ORDER BY created_at DESC 
                         LIMIT %s
                         """,
-                        (user_id, top_k)
+                        (user_id, session_id, top_k)
                     )
                     results = cursor.fetchall()
             

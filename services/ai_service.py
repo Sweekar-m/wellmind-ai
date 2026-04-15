@@ -162,5 +162,51 @@ def get_ai_response(user_input, mood, context=""):
         return {
             "success": False,
             "error": "unknown_error",
-            "response": "An unexpected error occurred. Please try again."
         }
+
+def generate_mental_health_insight(history_text):
+    """Generate insight from OpenRouter based on past messages."""
+    if not OPENROUTER_API_KEY:
+        return "⚠️ API configuration error. Cannot generate insights."
+        
+    try:
+        insight_prompt = f"""You are a professional, gentle, and encouraging mental health analyst. 
+Based on the following recent conversation history between the user and an AI therapist, provide a brief, insightful summary of the user's mental state.
+Focus on:
+1. Identifying their primary stressor or emotional pattern.
+2. Highlighting any positive steps they've taken or strengths they've shown.
+3. Offering one gentle piece of general advice.
+
+Try to keep the response well-structured and easy to read. Do not act as the chatbot, act as an analyst providing a short report to the user.
+
+Conversation History:
+{history_text}"""
+
+        headers = {
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://wellmind-ai.onrender.com",
+            "X-OpenRouter-Title": "WellMindAI Insights"
+        }
+        
+        payload = {
+            "model": "meta-llama/llama-3-8b-instruct",
+            "messages": [
+                {"role": "user", "content": insight_prompt}
+            ],
+            "temperature": 0.5,
+            "max_tokens": 400
+        }
+        
+        response = requests.post(OPENROUTER_URL, headers=headers, json=payload, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+        
+        if "choices" in data and len(data["choices"]) > 0:
+            return data["choices"][0]["message"]["content"].strip()
+        else:
+            return "Unable to generate insights at this time."
+            
+    except Exception as e:
+        print(f"Insight error: {e}")
+        return "Failed to analyze conversation history. Please try again later."

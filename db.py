@@ -36,11 +36,19 @@ def init_db():
         CREATE TABLE IF NOT EXISTS chat_sessions (
             id SERIAL PRIMARY KEY,
             user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            title TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             mood TEXT
         )
     """)
+    
+    # Safely migrate existing table
+    try:
+        cursor.execute("ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS title TEXT;")
+    except Exception as e:
+        print(f"Migration error: {e}")
+    
     
     # Create messages table
     cursor.execute("""
@@ -109,7 +117,7 @@ def get_user_sessions(user_id, limit=10):
     with get_db() as conn:
         with conn.cursor(cursor_factory=DictCursor) as cursor:
             cursor.execute(
-                """SELECT id, created_at, mood FROM chat_sessions 
+                """SELECT id, title, created_at, updated_at, mood FROM chat_sessions 
                    WHERE user_id = %s ORDER BY created_at DESC LIMIT %s""",
                 (user_id, limit)
             )
@@ -156,4 +164,13 @@ def update_session_mood(session_id, mood):
             cursor.execute(
                 "UPDATE chat_sessions SET mood = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s",
                 (mood, session_id)
+            )
+
+def update_session_title(session_id, title):
+    """Update session title natively."""
+    with get_db() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "UPDATE chat_sessions SET title = %s WHERE id = %s",
+                (title, session_id)
             )
