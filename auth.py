@@ -1,5 +1,3 @@
-"""Authentication utilities."""
-
 from werkzeug.security import generate_password_hash, check_password_hash
 from db import get_user_by_username, create_user, get_user_by_id
 import re
