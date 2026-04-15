@@ -2,7 +2,7 @@
 
 A production-ready mental wellness web application powered by AI. Chat with an empathetic AI assistant that understands your emotions, tracks your mood, and provides personalized support.
 
-**Live Demo:** Deploy to [Render.com](https://render.com)
+**Live Demo:** Deployed on https://wellmind-ai-odam.onrender.com
 
 ---
 
