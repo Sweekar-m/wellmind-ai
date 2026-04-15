@@ -164,12 +164,3 @@ def get_ai_response(user_input, mood, context=""):
             "error": "unknown_error",
             "response": "An unexpected error occurred. Please try again."
         }
-
-
-        result = response.json()
-
-        return result["choices"][0]["message"]["content"]
-
-    except Exception as e:
-        print("AI ERROR:", e)
-        return "⚠️ Something went wrong. Try again."

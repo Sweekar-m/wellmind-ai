@@ -6,6 +6,7 @@
   let startTime = Date.now();
   let isSending = false;
   let currentMood = null;
+  let currentSessionId = null;
 
   // ===== DOM =====
   const chatMessages = document.getElementById('chat-messages');
@@ -102,10 +103,10 @@
     showTyping();
 
     try {
-      const res = await fetch('/chat', {
+      const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text })
+        body: JSON.stringify({ message: text, session_id: currentSessionId })
       });
 
       if (!res.ok) {
@@ -122,7 +123,7 @@
       if (data.error) {
         showError(data.error);
       } else {
-        addMessage(data.reply, 'ai');
+        addMessage(data.response, 'ai');
         currentMood = data.mood;
         messageCount++;
       }
@@ -151,6 +152,15 @@
   });
 
   // ===== INIT =====
+  async function initSession() {
+    try {
+      const res = await fetch('/api/session/new', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) currentSessionId = data.session_id;
+    } catch (e) { console.error("Failed to init session", e); }
+  }
+  
+  initSession();
   setInterval(updateStats, 1000);
   msgInput?.focus();
 
