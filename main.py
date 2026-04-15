@@ -132,8 +132,8 @@ def chat():
         # 1. Detect mood
         mood = detect_mood(user_message)
         
-        # 2. Retrieve context from memory
-        context = memory_service.get_context(user_id, user_message, top_k=3)
+        # 2. Retrieve context from memory (PostgreSQL history)
+        context = memory_service.get_context(user_id, user_message, top_k=5)
         
         # 3. Get AI response with context
         result = get_ai_response(user_message, mood, context)

@@ -1,102 +1,76 @@
-"""Memory service using ChromaDB for persistent user context."""
+"""Memory service using PostgreSQL for recent chat context."""
 
-import chromadb
-import os
-from datetime import datetime
-CHROMA_DB_PATH = os.getenv("CHROMA_DB_PATH", "./chroma_data")
-
-client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
+from db import get_db
+from psycopg2.extras import DictCursor
 
 class MemoryService:
-    """Manage user memory with vector embeddings."""
+    """Manage user memory using recent chat history from PostgreSQL."""
     
-    def __init__(self):
-        """Initialize ChromaDB client."""
-        chroma_path = os.getenv("CHROMA_DB_PATH", "./chroma_data")
-        os.makedirs(chroma_path, exist_ok=True)
-        
-        self.client = chromadb.PersistentClient(path=chroma_path)
-    
-    def get_collection(self, user_id):
-        """Get or create a collection for the user."""
-        collection_name = f"user_{user_id}"
-        
+    def get_context(self, user_id, current_message, top_k=5):
+        """Retrieve recent past interactions as context."""
         try:
-            collection = self.client.get_collection(name=collection_name)
-        except:
-            collection = self.client.create_collection(name=collection_name)
-        
-        return collection
-    
-    def store_interaction(self, user_id, user_message, ai_response, mood):
-        """Store a user-AI interaction with embeddings."""
-        collection = self.get_collection(user_id)
-        
-        # Combine message and response for context
-        combined_text = f"User: {user_message}\nAssistant: {ai_response}"
-        
-        # Create unique ID based on timestamp
-        doc_id = f"msg_{int(datetime.now().timestamp() * 1000)}"
-        
-        collection.add(
-            ids=[doc_id],
-            documents=[combined_text],
-            metadatas=[{
-                "user_message": user_message,
-                "ai_response": ai_response,
-                "mood": mood,
-                "timestamp": datetime.now().isoformat()
-            }]
-        )
-    
-    def get_context(self, user_id, current_message, top_k=3):
-        """Retrieve relevant past interactions as context."""
-        try:
-            collection = self.get_collection(user_id)
+            with get_db() as conn:
+                with conn.cursor(cursor_factory=DictCursor) as cursor:
+                    # Fetch the last 'top_k' messages for this user across all sessions
+                    cursor.execute(
+                        """
+                        SELECT user_message, ai_response, mood, created_at 
+                        FROM messages 
+                        WHERE user_id = %s 
+                        ORDER BY created_at DESC 
+                        LIMIT %s
+                        """,
+                        (user_id, top_k)
+                    )
+                    results = cursor.fetchall()
             
-            # Query for similar messages
-            results = collection.query(
-                query_texts=[current_message],
-                n_results=top_k
-            )
-            
-            if not results or not results["documents"] or not results["documents"][0]:
+            if not results:
                 return ""
             
-            # Format context from retrieved interactions
+            # Since we ordered DESC, reverse the results to show chronological order
+            results.reverse()
+            
             context_lines = []
-            for i, doc in enumerate(results["documents"][0]):
-                mood = results["metadatas"][0][i].get("mood", "unknown")
-                context_lines.append(f"[Past - Mood: {mood}]\n{doc}")
+            for row in results:
+                mood = row.get("mood", "unknown")
+                msg = row.get("user_message", "")
+                resp = row.get("ai_response", "")
+                context_lines.append(f"[Past - Mood: {mood}]\nUser: {msg}\nAssistant: {resp}")
             
             return "\n\n".join(context_lines)
-        
+            
         except Exception as e:
             print(f"Error retrieving context: {e}")
             return ""
-    
-    def delete_user_memory(self, user_id):
-        """Delete all memory for a user (for privacy)."""
-        try:
-            collection_name = f"user_{user_id}"
-            self.client.delete_collection(name=collection_name)
-            return True
-        except:
-            return False
-    
+            
+    def store_interaction(self, user_id, user_message, ai_response, mood):
+        """No-op. The actual saving is handled by save_chat_message via the main API route."""
+        pass
+        
     def get_user_memory_stats(self, user_id):
-        """Get statistics about user's memory."""
+        """Get total message count for user."""
         try:
-            collection = self.get_collection(user_id)
-            count = collection.count()
-            return {"total_interactions": count}
-        except:
+            with get_db() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("SELECT COUNT(*) FROM messages WHERE user_id = %s", (user_id,))
+                    count = cursor.fetchone()[0]
+                    return {"total_interactions": count}
+        except Exception:
             return {"total_interactions": 0}
+
+    def delete_user_memory(self, user_id):
+        """Delete all messages for a user. (Optional, as schema handles it via CASCADE)"""
+        try:
+            with get_db() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("DELETE FROM messages WHERE user_id = %s", (user_id,))
+            return True
+        except Exception:
+            return False
 
 
 # Global instance
 _memory_service = None
-
 
 def get_memory_service():
     """Get memory service singleton."""
