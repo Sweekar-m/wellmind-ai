@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="WellMindAI — Your 24/7 AI-powered mental wellness companion. Chat freely, track your mood, and receive empathetic support anytime.">
+    <title>WellMindAI — Your Mental Wellness Companion</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
+</head>
+<body>
+
+    <!-- ═══════════ HEADER ═══════════ -->
+    <header class="header" id="main-header">
+        <a href="/" class="header__brand">
+            <div class="header__brand-icon">🌿</div>
+            WellMindAI
+        </a>
+        <nav class="header__nav">
+            <a href="/" class="header__nav-link header__nav-link--active" id="nav-home">
+                <span>Home</span>
+            </a>
+            <a href="/chat-page" class="header__nav-link" id="nav-chat">
+                💬 <span>Start Chat</span>
+            </a>
+        </nav>
+    </header>
+
+    <!-- ═══════════ HERO ═══════════ -->
+    <section class="hero" id="hero-section">
+        <div class="hero__badge">AI-Powered Wellness</div>
+
+        <h1 class="hero__title">
+            Your safe space to<br>
+            <span class="hero__title-accent">feel heard & supported</span>
+        </h1>
+
+        <p class="hero__subtitle">
+            Talk freely, understand your emotions, and receive compassionate AI support — 
+            anytime, anywhere, without judgment.
+        </p>
+
+        <div class="hero__actions">
+            <a href="/chat-page" class="btn btn--primary" id="cta-start-chat">
+                <span class="btn__icon">💬</span>
+                Start Chat
+            </a>
+            <a href="#features-section" class="btn btn--secondary" id="cta-learn-more">
+                Learn More
+            </a>
+        </div>
+    </section>
+
+    <!-- ═══════════ FEATURES ═══════════ -->
+    <section class="features" id="features-section">
+        <p class="features__label reveal">What we offer</p>
+        <h2 class="features__heading reveal">Everything you need for daily wellness</h2>
+
+        <div class="features__grid">
+            <!-- Card 1 -->
+            <div class="feature-card reveal" id="feature-chat">
+                <div class="feature-card__icon feature-card__icon--chat">💬</div>
+                <h3 class="feature-card__title">Real-Time AI Chat</h3>
+                <p class="feature-card__desc">
+                    Have meaningful conversations with an empathetic AI that truly listens. 
+                    Share your thoughts freely in a safe, private space.
+                </p>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="feature-card reveal" id="feature-mood">
+                <div class="feature-card__icon feature-card__icon--mood">🧠</div>
+                <h3 class="feature-card__title">Mood Detection</h3>
+                <p class="feature-card__desc">
+                    Our AI detects your emotional state — stress, sadness, or calm — 
+                    and adapts its responses to offer the right support.
+                </p>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="feature-card reveal" id="feature-support">
+                <div class="feature-card__icon feature-card__icon--support">❤️</div>
+                <h3 class="feature-card__title">Empathetic Support</h3>
+                <p class="feature-card__desc">
+                    Receive warm, human-like responses rooted in empathy. 
+                    No judgment, no clinical jargon — just genuine care.
+                </p>
+            </div>
+
+            <!-- Card 4 -->
+            <div class="feature-card reveal" id="feature-session">
+                <div class="feature-card__icon feature-card__icon--session">📊</div>
+                <h3 class="feature-card__title">Session Insights</h3>
+                <p class="feature-card__desc">
+                    Track your conversation stats, duration, and mood patterns 
+                    to better understand your emotional journey over time.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ TRUST STRIP ═══════════ -->
+    <section class="trust-strip" id="trust-section">
+        <div class="trust-strip__text">
+            <span class="trust-strip__item">🔒 Private & Secure</span>
+            <span class="trust-strip__item">⚡ Instant Responses</span>
+            <span class="trust-strip__item">🌍 Available 24/7</span>
+            <span class="trust-strip__item">💚 Always Free</span>
+        </div>
+    </section>
+
+    <!-- ═══════════ FOOTER ═══════════ -->
+    <footer class="footer">
+        <p class="footer__text">
+            Built with <span class="footer__heart">♥</span> for your well-being — WellMindAI © 2026
+        </p>
+    </footer>
+
+    <!-- ═══════════ JS ═══════════ -->
+    <script>
+        // Header scroll shadow
+        const header = document.getElementById('main-header');
+        window.addEventListener('scroll', () => {
+            header.classList.toggle('scrolled', window.scrollY > 10);
+        });
+
+        // Reveal-on-scroll animation
+        const revealElements = document.querySelectorAll('.reveal');
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach((entry, i) => {
+                if (entry.isIntersecting) {
+                    setTimeout(() => {
+                        entry.target.classList.add('visible');
+                    }, i * 80);
+                    revealObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.15 });
+
+        revealElements.forEach(el => revealObserver.observe(el));
+    </script>
+
+</body>
+</html>

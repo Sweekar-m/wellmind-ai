@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Chat with WellMindAI — your empathetic AI mental wellness companion.">
+    <title>Chat — WellMindAI</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
+</head>
+<body>
+
+    <div class="chat-layout">
+
+        <!-- ═══════════ CHAT HEADER ═══════════ -->
+        <div class="chat-header">
+            <div class="chat-header__left">
+                <a href="/logout" class="chat-header__back" id="btn-logout" title="Logout">🚪</a>
+                <div class="chat-header__avatar">🌿</div>
+                <div class="chat-header__info">
+                    <h2>WellMindAI</h2>
+                    <span class="chat-header__status" id="header-status">● Online</span>
+                </div>
+            </div>
+            <div class="chat-header__user" id="user-info">
+                <!-- Username dynamically loaded -->
+            </div>
+        </div>
+
+        <!-- ═══════════ STATS BAR ═══════════ -->
+        <div class="stats-bar" id="stats-bar">
+            <div class="stat-chip stat-chip--mood" id="stat-mood">
+                <span class="stat-chip__icon">🧠</span>
+                <span id="mood-value">Mood: —</span>
+            </div>
+            <div class="stat-chip stat-chip--messages" id="stat-messages">
+                <span class="stat-chip__icon">💬</span>
+                <span id="messages-value">Messages: 0</span>
+            </div>
+            <div class="stat-chip stat-chip--duration" id="stat-duration">
+                <span class="stat-chip__icon">⏱</span>
+                <span id="duration-value">Duration: 0s</span>
+            </div>
+        </div>
+
+        <!-- ═══════════ MESSAGES ═══════════ -->
+        <div class="chat-messages" id="chat-messages">
+            <!-- Welcome message -->
+            <div class="message message--ai" id="welcome-msg">
+                <div class="message__avatar">🌿</div>
+                <div class="message__content message__content--welcome">
+                    <div class="message__text">
+                        <strong>Welcome to WellMindAI!</strong><br/>
+                        I'm here to listen and support you. Share whatever is on your mind — 
+                        there's no judgment here. 💚
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════ INPUT AREA ═══════════ -->
+        <div class="chat-input-area">
+            <div class="chat-input-wrapper" id="input-wrapper">
+                <input
+                    type="text"
+                    class="chat-input"
+                    id="msg-input"
+                    placeholder="Type your message..."
+                    autocomplete="off"
+                    autofocus
+                />
+                <button class="chat-send-btn" id="btn-send" title="Send message">
+                    ➤
+                </button>
+            </div>
+            <div class="input-hint" id="input-hint">Press Enter to send</div>
+        </div>
+
+    </div>
+
+    <!-- ═══════════ JS ═══════════ -->
+    <script src="/static/script.js"></script>
+
+</body>
+</html>
