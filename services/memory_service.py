@@ -3,7 +3,9 @@
 import chromadb
 import os
 from datetime import datetime
+CHROMA_DB_PATH = os.getenv("CHROMA_DB_PATH", "./chroma_data")
 
+client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
 
 class MemoryService:
     """Manage user memory with vector embeddings."""
